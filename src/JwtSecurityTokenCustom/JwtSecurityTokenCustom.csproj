@@ -6,6 +6,7 @@
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<PackageProjectUrl>https://github.com/mccj/JwtSecurityTokenCustom</PackageProjectUrl>
 		<RepositoryUrl>https://github.com/mccj/JwtSecurityTokenCustom</RepositoryUrl>
+		<Version>1.0.0.1</Version>
 		<!--<Nullable>enable</Nullable>-->
 	</PropertyGroup>
 	<ItemGroup>
