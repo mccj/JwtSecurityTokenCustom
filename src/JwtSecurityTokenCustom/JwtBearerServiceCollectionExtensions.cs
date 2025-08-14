@@ -9,7 +9,7 @@ public static class JwtBearerServiceCollectionExtensions
         if (string.IsNullOrWhiteSpace(scheme)) scheme = Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme;
         if (string.IsNullOrWhiteSpace(issuer)) issuer = "http://localhost";
         if (string.IsNullOrWhiteSpace(audience)) audience = "http://localhost";
-        if (string.IsNullOrWhiteSpace(secretKey)) secretKey = "Hello-key----test";
+        if (string.IsNullOrWhiteSpace(secretKey)) secretKey = "Hello-key----test123456789235621";// ÖÁÉÙ32¸ö×Ö·û
         audience = audience + "/" + scheme;
 
         services.Configure<JwtSecurity.JwtSettings>(scheme, o => { o.Issuer = issuer; o.SecretKey = secretKey; o.Audience = audience; });
