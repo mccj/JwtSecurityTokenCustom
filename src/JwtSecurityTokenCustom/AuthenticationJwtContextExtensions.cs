@@ -16,7 +16,7 @@ public static class AuthenticationJwtContextExtensions
     {
         return IssueJwtToken(context, Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme, userId, userName, roles, avatar, introduction, email, mobilePhone, userData);
     }
-    public static string IssueJwtToken(this HttpContext context, string scheme, string userId, string userName, string[] roles, string avatar = null, string introduction = null, string email = null, string mobilePhone = null, string userData = null)
+    public static string IssueJwtToken(this HttpContext context, string scheme, string userId, string userName, string[] roles, string avatar = null, string introduction = null, string email = null, string mobilePhone = null, string userData = null, TimeSpan? expires = null)
     {
         var claims = new System.Collections.Generic.List<Claim>{
             new Claim(ClaimTypes.Sid,userId),
@@ -36,14 +36,34 @@ public static class AuthenticationJwtContextExtensions
         if (!string.IsNullOrWhiteSpace(userData))
             claims.Add(new Claim(ClaimTypes.UserData, userData));
 
-        return IssueJwtToken(context, scheme, claims);
+        return IssueJwtToken(context, scheme, claims, expires);
     }
-    public static string IssueJwtToken(this HttpContext context,/*int lifetime,*/ IEnumerable<Claim> claims)
+    public static string IssueJwtToken(this HttpContext context,/*int lifetime,*/ IEnumerable<Claim> claims, TimeSpan? expires)
     {
-        return IssueJwtToken(context, Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme, claims);
+        return IssueJwtToken(context, Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme, claims, expires);
     }
-    public static string IssueJwtToken(this HttpContext context, string scheme, /*int lifetime,*/ IEnumerable<Claim> claims)
+    public static string IssueJwtToken(this HttpContext context/*int lifetime,*/, TimeSpan? expires)
     {
+        return IssueJwtToken(context, Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme, UserToClaims(context.User), expires);
+    }
+    public static string IssueJwtToken(this HttpContext context, string scheme/*int lifetime,*/, TimeSpan? expires)
+    {
+        return IssueJwtToken(context, scheme, UserToClaims(context.User), expires);
+    }
+
+    public static async Task<string> IssueJwtTokenAsync<TUser>(this SignInManager<TUser> signInManager, TUser user, TimeSpan? expires) where TUser : class
+    {
+        var userPrincipal = await signInManager.CreateUserPrincipalAsync(user);
+        return AuthenticationJwtContextExtensions.IssueJwtToken(signInManager.Context, JwtBearer.JwtBearerDefaults.AuthenticationScheme, UserToClaims(userPrincipal), expires);
+    }
+    public static async Task<string> IssueJwtTokenAsync<TUser>(this SignInManager<TUser> signInManager, string scheme, TUser user, TimeSpan? expires) where TUser : class
+    {
+        var userPrincipal = await signInManager.CreateUserPrincipalAsync(user);
+        return AuthenticationJwtContextExtensions.IssueJwtToken(signInManager.Context, scheme, UserToClaims(userPrincipal), expires);
+    }
+    public static string IssueJwtToken(this HttpContext context, string scheme, /*int lifetime,*/ IEnumerable<Claim> claims, TimeSpan? expires)
+    {
+        if (!expires.HasValue) expires = TimeSpan.FromHours(1);
         var _jwtSettings = context.RequestServices.GetService<IOptionsMonitor<JwtSecurity.JwtSettings>>().Get(scheme);
         //对称秘钥
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.SecretKey));
@@ -51,32 +71,13 @@ public static class AuthenticationJwtContextExtensions
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
         //生成token  [注意]需要nuget添加Microsoft.AspNetCore.Authentication.JwtBearer包，并引用System.IdentityModel.Tokens.Jwt命名空间
-        var token = new JwtSecurityToken(_jwtSettings.Issuer, _jwtSettings.Audience, claims, DateTime.Now, DateTime.Now.AddDays(1), creds);
+        var token = new JwtSecurityToken(_jwtSettings.Issuer, _jwtSettings.Audience, claims, DateTime.Now, new[] { TimeSpan.MaxValue, TimeSpan.Zero }.Contains(expires.Value) ? DateTime.MaxValue : DateTime.Now.Add(expires.Value), creds);
 
         var jwtTokenHandler = new JwtSecurityTokenHandler();
         var jwtToken = jwtTokenHandler.WriteToken(token);//生成Token
         return jwtToken;
     }
-    public static string IssueJwtToken(this HttpContext context/*int lifetime,*/ )
-    {
-        return IssueJwtToken(context, Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme, UserToClaims(context.User));
-    }
-    public static string IssueJwtToken(this HttpContext context, string scheme/*int lifetime,*/)
-    {
-        return IssueJwtToken(context, scheme, UserToClaims(context.User));
-    }
-
-    public static async Task<string> IssueJwtTokenAsync<TUser>(this SignInManager<TUser> signInManager, TUser user) where TUser : class
-    {
-        var userPrincipal = await signInManager.CreateUserPrincipalAsync(user);
-        return AuthenticationJwtContextExtensions.IssueJwtToken(signInManager.Context, JwtBearer.JwtBearerDefaults.AuthenticationScheme, UserToClaims(userPrincipal));
-    }
-    public static async Task<string> IssueJwtTokenAsync<TUser>(this SignInManager<TUser> signInManager, string scheme, TUser user) where TUser : class
-    {
-        var userPrincipal = await signInManager.CreateUserPrincipalAsync(user);
-        return AuthenticationJwtContextExtensions.IssueJwtToken(signInManager.Context, scheme, UserToClaims(userPrincipal));
-    }
-    public static async Task<string> IssueJwtTokenByPasswordAsync<TUser>(this SignInManager<TUser> signInManager, string scheme, string userName, string password) where TUser : class
+    public static async Task<string> IssueJwtTokenByPasswordAsync<TUser>(this SignInManager<TUser> signInManager, string scheme, string userName, string password, TimeSpan? expires) where TUser : class
     {
         if (string.IsNullOrWhiteSpace(userName)) throw new ArgumentNullException(nameof(userName));
         if (string.IsNullOrWhiteSpace(password)) throw new ArgumentNullException(nameof(password));
@@ -89,16 +90,16 @@ public static class AuthenticationJwtContextExtensions
         }
         if (await userManager.CheckPasswordAsync(user, password))
         {
-            return await AuthenticationJwtContextExtensions.IssueJwtTokenAsync(signInManager, scheme, user);
+            return await AuthenticationJwtContextExtensions.IssueJwtTokenAsync(signInManager, scheme, user, expires);
         }
         else
         {
             throw new Exception("密码错误");
         }
     }
-    public static async Task<string> IssueJwtTokenByPasswordAsync<TUser>(this SignInManager<TUser> signInManager, string userName, string password) where TUser : class
+    public static async Task<string> IssueJwtTokenByPasswordAsync<TUser>(this SignInManager<TUser> signInManager, string userName, string password, TimeSpan? expires) where TUser : class
     {
-        return await AuthenticationJwtContextExtensions.IssueJwtTokenByPasswordAsync(signInManager, JwtBearer.JwtBearerDefaults.AuthenticationScheme, userName, password);
+        return await AuthenticationJwtContextExtensions.IssueJwtTokenByPasswordAsync(signInManager, JwtBearer.JwtBearerDefaults.AuthenticationScheme, userName, password, expires);
     }
     private static IEnumerable<Claim> UserToClaims(ClaimsPrincipal user)
     {
