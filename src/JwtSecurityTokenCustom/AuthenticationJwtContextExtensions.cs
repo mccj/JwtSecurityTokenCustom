@@ -38,30 +38,30 @@ public static class AuthenticationJwtContextExtensions
 
         return IssueJwtToken(context, scheme, claims, expires);
     }
-    public static string IssueJwtToken(this HttpContext context,/*int lifetime,*/ IEnumerable<Claim> claims, TimeSpan? expires)
+    public static string IssueJwtToken(this HttpContext context,/*int lifetime,*/ IEnumerable<Claim> claims, TimeSpan? expires = null)
     {
         return IssueJwtToken(context, Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme, claims, expires);
     }
-    public static string IssueJwtToken(this HttpContext context/*int lifetime,*/, TimeSpan? expires)
+    public static string IssueJwtToken(this HttpContext context/*int lifetime,*/, TimeSpan? expires = null)
     {
         return IssueJwtToken(context, Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme, UserToClaims(context.User), expires);
     }
-    public static string IssueJwtToken(this HttpContext context, string scheme/*int lifetime,*/, TimeSpan? expires)
+    public static string IssueJwtToken(this HttpContext context, string scheme/*int lifetime,*/, TimeSpan? expires = null)
     {
         return IssueJwtToken(context, scheme, UserToClaims(context.User), expires);
     }
 
-    public static async Task<string> IssueJwtTokenAsync<TUser>(this SignInManager<TUser> signInManager, TUser user, TimeSpan? expires) where TUser : class
+    public static async Task<string> IssueJwtTokenAsync<TUser>(this SignInManager<TUser> signInManager, TUser user, TimeSpan? expires = null) where TUser : class
     {
         var userPrincipal = await signInManager.CreateUserPrincipalAsync(user);
         return AuthenticationJwtContextExtensions.IssueJwtToken(signInManager.Context, JwtBearer.JwtBearerDefaults.AuthenticationScheme, UserToClaims(userPrincipal), expires);
     }
-    public static async Task<string> IssueJwtTokenAsync<TUser>(this SignInManager<TUser> signInManager, string scheme, TUser user, TimeSpan? expires) where TUser : class
+    public static async Task<string> IssueJwtTokenAsync<TUser>(this SignInManager<TUser> signInManager, string scheme, TUser user, TimeSpan? expires = null) where TUser : class
     {
         var userPrincipal = await signInManager.CreateUserPrincipalAsync(user);
         return AuthenticationJwtContextExtensions.IssueJwtToken(signInManager.Context, scheme, UserToClaims(userPrincipal), expires);
     }
-    public static string IssueJwtToken(this HttpContext context, string scheme, /*int lifetime,*/ IEnumerable<Claim> claims, TimeSpan? expires)
+    public static string IssueJwtToken(this HttpContext context, string scheme, /*int lifetime,*/ IEnumerable<Claim> claims, TimeSpan? expires = null)
     {
         if (!expires.HasValue) expires = TimeSpan.FromHours(1);
         var _jwtSettings = context.RequestServices.GetService<IOptionsMonitor<JwtSecurity.JwtSettings>>().Get(scheme);
@@ -77,7 +77,7 @@ public static class AuthenticationJwtContextExtensions
         var jwtToken = jwtTokenHandler.WriteToken(token);//Éú³ÉToken
         return jwtToken;
     }
-    public static async Task<string> IssueJwtTokenByPasswordAsync<TUser>(this SignInManager<TUser> signInManager, string scheme, string userName, string password, TimeSpan? expires) where TUser : class
+    public static async Task<string> IssueJwtTokenByPasswordAsync<TUser>(this SignInManager<TUser> signInManager, string scheme, string userName, string password, TimeSpan? expires = null) where TUser : class
     {
         if (string.IsNullOrWhiteSpace(userName)) throw new ArgumentNullException(nameof(userName));
         if (string.IsNullOrWhiteSpace(password)) throw new ArgumentNullException(nameof(password));
@@ -97,7 +97,7 @@ public static class AuthenticationJwtContextExtensions
             throw new Exception("ÃÜÂë´íÎó");
         }
     }
-    public static async Task<string> IssueJwtTokenByPasswordAsync<TUser>(this SignInManager<TUser> signInManager, string userName, string password, TimeSpan? expires) where TUser : class
+    public static async Task<string> IssueJwtTokenByPasswordAsync<TUser>(this SignInManager<TUser> signInManager, string userName, string password, TimeSpan? expires = null) where TUser : class
     {
         return await AuthenticationJwtContextExtensions.IssueJwtTokenByPasswordAsync(signInManager, JwtBearer.JwtBearerDefaults.AuthenticationScheme, userName, password, expires);
     }
