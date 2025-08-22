@@ -71,7 +71,7 @@ public static class AuthenticationJwtContextExtensions
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
         //生成token  [注意]需要nuget添加Microsoft.AspNetCore.Authentication.JwtBearer包，并引用System.IdentityModel.Tokens.Jwt命名空间
-        var token = new JwtSecurityToken(_jwtSettings.Issuer, _jwtSettings.Audience, claims, DateTime.Now, new[] { TimeSpan.MaxValue, TimeSpan.Zero }.Contains(expires.Value) ? DateTime.MaxValue : DateTime.Now.Add(expires.Value), creds);
+        var token = new JwtSecurityToken(_jwtSettings.Issuer, _jwtSettings.Audience, claims, DateTime.Now, new[] { TimeSpan.MaxValue, TimeSpan.Zero }.Contains(expires.Value) ? DateTime.MaxValue.AddYears(-10) : DateTime.Now.Add(expires.Value), creds);
 
         var jwtTokenHandler = new JwtSecurityTokenHandler();
         var jwtToken = jwtTokenHandler.WriteToken(token);//生成Token
